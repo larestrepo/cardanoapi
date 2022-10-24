@@ -145,3 +145,14 @@ Restart nginx service
 
     sudo service nginx restart
 
+Intialize github repo
+
+git init
+git checkout -b 1.initial-cardanoapi
+git status
+git add .
+
+git commit -m "first commit with initial cardanoapi setup"
+git remote add origin https://github.com/larestrepo/cardanoapi.git
+
+git push -u origin 1.initial-cardanoapi 
