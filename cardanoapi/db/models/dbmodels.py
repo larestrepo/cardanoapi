@@ -1,14 +1,16 @@
 from codecs import backslashreplace_errors
-import enum
+from datetime import datetime
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Enum, Text
+from sqlalchemy import BigInteger, Boolean, Column, Enum
+from sqlalchemy import ForeignKey, Integer, String, Text, DateTime, BigInteger
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import null
 from sqlalchemy.dialects.postgresql import UUID, JSON
 
 from ..dblib import Base
 from .mixins import Timestamp
 import uuid
+from routers.pydantic_schemas import ScriptPurpose
+
 
 class Wallet(Timestamp, Base):
     __tablename__ = "wallet"
@@ -25,11 +27,11 @@ class Wallet(Timestamp, Base):
     hash_verification_key = Column(Text, nullable=False)
 
     user = relationship("User", back_populates="wallet")
+    transactions = relationship("Transactions", back_populates="wallet")
 
 class User(Timestamp, Base):
     __tablename__ = "users"
 
-    # id = Column(Integer, primary_key=True, index=True)
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     id_wallet = Column(UUID(as_uuid=True), ForeignKey('wallet.id'), nullable=True)
     username = Column(String(100), nullable=False)
@@ -38,23 +40,26 @@ class User(Timestamp, Base):
 
     wallet = relationship("Wallet", back_populates="user")
 
-    # profile = relationship("Profile", back_populates="owner", uselist=False)
+class Transactions(Base):
+    __tablename__ = "transactions"
 
-    # profile = relationship("Profile", back_populates="owner", uselist=False)
-    # student_courses = relationship("StudentCourse", back_populates="student")
-    # student_content_blocks = relationship(
-    #     "CompletedContentBlock", back_populates="student")
+    id = Column(Integer, primary_key=True, index=True)
+    id_wallet = Column(UUID(as_uuid=True), ForeignKey('wallet.id'), nullable=True)
+    submission = Column(DateTime, default=datetime.utcnow, nullable=True)
+    address_origin = Column(Text, nullable=True)
+    address_destin = Column(Text, nullable=True)
+    tx_cborhex = Column(JSON, nullable=True)
+    metadata_info = Column(JSON, nullable=True)
+    fees = Column(BigInteger, nullable=True)
+    network = Column(Text, nullable=True)
+    processed = Column(Boolean, nullable=True)
 
+    wallet = relationship("Wallet", back_populates="transactions")
 
+class Scripts(Base):
+    __tablename__ = "scripts"
 
-
-# class Profile(Timestamp, Base):
-#     __tablename__ = "profiles"
-
-#     id = Column(Integer, primary_key=True, index=True)
-#     first_name = Column(String(50), nullable=False)
-#     last_name = Column(String(50), nullable=False)
-#     bio = Column(Text, nullable=True)
-#     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-
-#     owner = relationship("User", back_populates="profile")
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    name = Column(Text, nullable=True)
+    purpose = Column(Enum(ScriptPurpose), nullable=True)
+    content = Column(JSON, nullable=True)
