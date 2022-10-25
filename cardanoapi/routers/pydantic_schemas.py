@@ -1,8 +1,26 @@
 from enum import Enum
-from typing import List, Union
+from typing import List, Union, Optional
+from datetime import datetime
+from pydantic import UUID4
 
 from pydantic import BaseModel, validator
 
+class UserBase(BaseModel):
+    username: str
+
+class User(UserBase):
+    id: UUID4
+    id_wallet: Optional[str]=None
+    is_verified: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+        
+class UserCreate(UserBase):
+    password: str
 
 class NodeCommandName(str, Enum):
     utxos = "utxos"

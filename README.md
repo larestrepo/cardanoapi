@@ -166,4 +166,6 @@ git push -u origin 1.initial-cardanoapi
 
     alembic revision --autogenerate -m "Creation of tables"
 
+    alembic upgrade head
+
     

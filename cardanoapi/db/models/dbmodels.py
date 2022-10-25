@@ -10,13 +10,6 @@ from ..dblib import Base
 from .mixins import Timestamp
 import uuid
 
-
-class Role(enum.IntEnum):
-    admin = 1
-    user = 2
-    investor = 3
-
-
 class Wallet(Timestamp, Base):
     __tablename__ = "wallet"
     
@@ -38,12 +31,12 @@ class User(Timestamp, Base):
 
     # id = Column(Integer, primary_key=True, index=True)
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    id_wallet = Column(UUID(as_uuid=True), ForeignKey('wallet.id'))
+    id_wallet = Column(UUID(as_uuid=True), ForeignKey('wallet.id'), nullable=True)
     username = Column(String(100), nullable=False)
-    role = Column(Enum(Role))
+    hashed_password = Column(String)
     is_verified = Column(Boolean, default=False)
 
-    wallet = relationship("Wallet", back_populates="users")
+    wallet = relationship("Wallet", back_populates="user")
 
     # profile = relationship("Profile", back_populates="owner", uselist=False)
 

@@ -32,7 +32,7 @@ params = config(config_path, section='postgresql')
 # connect to the PostgreSQL server
 print('Connecting to the PostgreSQL database...')
 conn_string = f"postgresql://{params['user']}:{params['password']}@{params['host']}:{params['port']}/{params['database']}"
-engine = create_engine(conn_string, connect_args={}, future=True)
+engine = create_engine(conn_string, connect_args={}, future=True, echo=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
 

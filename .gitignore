@@ -207,3 +207,4 @@ cython_debug/
 /cardanoapi/server copy.py
 /cardanoapi/temp_main.py
 cardanoapi/db/dblib_old.py
+cardanoapi/alembic/versions
