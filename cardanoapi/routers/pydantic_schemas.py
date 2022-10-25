@@ -5,6 +5,10 @@ from pydantic import UUID4
 
 from pydantic import BaseModel, validator
 
+
+############################
+# User section definition
+############################
 class UserBase(BaseModel):
     username: str
 
@@ -18,13 +22,12 @@ class User(UserBase):
     class Config:
         orm_mode = True
 
-        
 class UserCreate(UserBase):
     password: str
 
-class NodeCommandName(str, Enum):
-    utxos = "utxos"
-    balance = "balance"
+############################
+# Wallet section definition
+############################
 
 class KeyCreate(BaseModel):
     name: Union [str, None]
@@ -36,6 +39,22 @@ class KeyRecover(BaseModel):
     words: List[str]
     save_flag: bool = True
 
+# class KeyResponse(BaseModel):
+#     save_flag: bool
+#     id: UUID4
+#     wallet_name: str
+#     mnemonic: 
+
+
+    
+############################
+# Transaction section definition
+############################
+
+class NodeCommandName(str, Enum):
+    utxos = "utxos"
+    balance = "balance"
+    
 class AddressDestin(BaseModel):
     address: str
     amount: int
@@ -60,6 +79,10 @@ class Mint(SimpleSend):
     script_id: str
     tokens: list[Tokens]
 
+############################
+# Script section definition
+############################
+    
 class Script(BaseModel):
     name: str
     type: str = "all"
