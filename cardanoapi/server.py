@@ -1,14 +1,14 @@
 
 import json
 
-import db as dblib
 import uvicorn
-from cardanopythonlib import base, path_utils
+from cardanopythonlib import base
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from routers import blockchain_api, keys_api, transactions_api, scripts_api
+from db.models import dbmodels
+from db.dblib import engine
 
-from models import *
 from celery import Celery
 
 config_path = './config.ini' # Optional argument
@@ -25,6 +25,8 @@ contact = {
     "name": "Moxie",
     "TickerPool": "MoxiePool"
 }
+
+dbmodels.Base.metadata.create_all(bind=engine)
 
 cardanodatos = FastAPI(
         title=title, 

@@ -156,3 +156,14 @@ git commit -m "first commit with initial cardanoapi setup"
 git remote add origin https://github.com/larestrepo/cardanoapi.git
 
 git push -u origin 1.initial-cardanoapi 
+
+
+### Work with alembic
+
+    poetry add alembic
+
+    alembic init alembic
+
+    alembic revision --autogenerate -m "Creation of tables"
+
+    
