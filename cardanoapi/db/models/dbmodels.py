@@ -63,3 +63,4 @@ class Scripts(Base):
     name = Column(Text, nullable=True)
     purpose = Column(Enum(ScriptPurpose), nullable=True)
     content = Column(JSON, nullable=True)
+    policyID = Column(Text, nullable=True)

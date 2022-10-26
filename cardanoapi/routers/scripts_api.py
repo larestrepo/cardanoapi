@@ -1,10 +1,11 @@
 import json
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, UploadFile, Depends
+from sqlalchemy.orm import Session
 
 from cardanopythonlib import base, path_utils
 from routers.pydantic_schemas import ScriptPurpose, Script
-
-from db import dblib
+from db.dblib import get_db
+from db.models import dbmodels
 
 router = APIRouter()
 
@@ -18,41 +19,41 @@ node = base.Node(config_path) # Or with the default ini: node = base.Node()
                 summary="Upload an existing script file",
                 response_description="Script uploaded"
                 )
-async def upload_script(script_name: str, file: UploadFile, script_purpose: ScriptPurpose):
+async def upload_script(script_name: str, 
+        file: UploadFile, 
+        script_purpose: ScriptPurpose,
+        db: Session = Depends(get_db)):
     """Upload script file and stores it in local db. Purpose: mint, multisig\n
     **file**: script file to be uploaded.\n
     """
-    id = None
     script_content = await file.read()
-    # script_content = str(script_content, 'utf-8')
     script_file_path = node.MINT_FOLDER
     script_content = json.loads(script_content)
     path_utils.save_metadata(script_file_path, script_name, script_content)
     policyID = node.create_policy_id(script_purpose, script_name)
-    if policyID is not None:
-        id = dblib.insert_script(script_name, script_purpose, script_content, policyID)
-    
-    response = {
-        "msg": "Script created in local DB",
-        "script_id": id,
-        "policyID": policyID,
-    }
-    return response
+    if policyID is None:
+        db_script = {"msg": "Problems building the script"}
+    else:
+        db_script = dbmodels.Scripts(
+            name = script_name,
+            purpose = script_purpose,
+            content = script_content,
+            policyID = policyID
+        )
+        db.add(db_script)
+        db.commit()
+        db.refresh(db_script)
 
-# @router.get("/cardanodatos/queryScript")
-# async def query_script():
-        
-#     tableName = 'scripts'
-#     query = f"SELECT * FROM {tableName};"
-#     scripts = dblib.read_query(query)
-#     return scripts
+    return db_script
 
 @router.post("/cardanodatos/simplescript/{script_purpose}", status_code=201, 
                 tags=["Scripts"],
                 summary="",
                 response_description="Script creation"
                 )
-async def simpleScript(simpleScript_params: Script, script_purpose: ScriptPurpose) -> dict:
+async def simpleScript(simpleScript_params: Script, 
+    script_purpose: ScriptPurpose,
+    db: Session = Depends(get_db)) -> dict:
     """Creation of a script depending of its purpose: mint or multisig.\n
     **name**: name of the script.\n
     **type**: type of the script. Options are: all, any, atLeast.\n
@@ -61,9 +62,9 @@ async def simpleScript(simpleScript_params: Script, script_purpose: ScriptPurpos
     **type_time**: if script constraint by time. Options are: before, after.\n
     **slot**: slot for the validity range.
     """
-    name = simpleScript_params.name
+    script_name = simpleScript_params.name
     parameters = {
-        "name": name,
+        "name": script_name,
         "type": simpleScript_params.type,
         "required": simpleScript_params.required,
         "hashes": simpleScript_params.hashes,
@@ -71,27 +72,28 @@ async def simpleScript(simpleScript_params: Script, script_purpose: ScriptPurpos
         "slot": simpleScript_params.slot,
         "purpose": script_purpose
     }
-    # simple_script, policyID = node.create_simple_script(name, script_purpose, type, required, hashes)
     simple_script, policyID = node.create_simple_script(parameters=parameters)
     if simple_script is None or policyID is None:
-        response = {"msg": "Problems building the script"}
+        db_script = {"msg": "Problems building the script"}
     else:
         script_purpose = script_purpose._value_
-        id = dblib.insert_script(name, script_purpose, simple_script, policyID)
-        response = {
-            "msg": "Script created",
-            "script_id": id,
-            "policyID": policyID,
-            "content": simple_script
-        }
+        db_script = dbmodels.Scripts(
+            name = script_name,
+            purpose = script_purpose,
+            content = simple_script,
+            policyID = policyID
+        )
+        db.add(db_script)
+        db.commit()
+        db.refresh(db_script)
     
     if script_purpose == 'mint':
         script_file_path = node.MINT_FOLDER
     elif script_purpose == 'multisig':
         script_file_path = node.MULTISIG_FOLDER
 
-    script_file_name = '/' + name + '.script'
-    policy_file_name = '/' + name + '.policyid'
+    script_file_name = '/' + script_name + '.script'
+    policy_file_name = '/' + script_name + '.policyid'
     path_utils.remove_file(script_file_path, script_file_name) # type:ignore
     path_utils.remove_file(script_file_path, policy_file_name) # type:ignore
-    return response
+    return db_script
