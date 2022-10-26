@@ -1,10 +1,12 @@
 import json
 
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, UploadFile, Depends, HTTPException
+from sqlalchemy.orm import Session
+from db.dblib import get_db
 
 from cardanopythonlib import base, path_utils
 from routers.pydantic_schemas import SimpleSend, BuildTx, Mint
-from db import dblib
+from db.models import dbmodels
 
 router = APIRouter()
 
@@ -19,7 +21,7 @@ node = base.Node(config_path) # Or with the default ini: node = base.Node()
                 summary="Simple send of ADA (not tokens) to multiple addresses",
                 response_description="Transaction submit"
                 )
-async def simple_send(send_params: SimpleSend) -> dict:
+async def simple_send(send_params: SimpleSend, db: Session = Depends(get_db)) -> dict:
     """
     Simple send of ADA (not tokens) to multiple addresses.
     The system needs to have the skeys in local db to sign and submit. 
@@ -34,7 +36,15 @@ async def simple_send(send_params: SimpleSend) -> dict:
     fees = 0
     msg = ""
     id = send_params.wallet_id
-    (address_origin, payment_vkey) = dblib.get_address_origin('wallet', id)
+
+    db_wallet = db.query(dbmodels.Wallet).filter(dbmodels.Wallet.id == id).first()
+    if db_wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    
+    address_origin = db_wallet.payment_addr
+    payment_skey = db_wallet.payment_skey
+
+    # (address_origin, payment_vkey) = dblib.get_address_origin('wallet', id)
     address_destin = send_params.address_destin
     address_destin_dict = [item.dict() for item in address_destin]
     params = {
@@ -58,7 +68,7 @@ async def simple_send(send_params: SimpleSend) -> dict:
         sign_file_name = 'temp_' + id
         sign_path = node.KEYS_FILE_PATH + '/'
         sign_file_name = 'temp_' + id
-        path_utils.save_file(sign_path + sign_file_name + '/', sign_file_name + '.payment.skey', payment_vkey)
+        path_utils.save_file(sign_path + sign_file_name + '/', sign_file_name + '.payment.skey', payment_skey)
         sign_response = node.sign_transaction(sign_file_name)
         if sign_response is not None:
             success_flag = True
@@ -71,41 +81,37 @@ async def simple_send(send_params: SimpleSend) -> dict:
             with open(cbor_tx_path, 'r') as file:
                 cbor_tx_file = json.load(file)
         else:
-            msg = "Problems signing the transaction"
-            cbor_tx_file = {"msg": msg}
+            raise HTTPException(status_code=404, detail="Problems signing the transaction")
     else:
-        msg = "Problems building the transaction"
-        cbor_tx_file = {"msg": msg}
+        raise HTTPException(status_code=404, detail="Problems building the transaction")
     
-    # Check if transaction is already stored in db
-    tableName = 'transactions'
-    query = f"SELECT * FROM {tableName} WHERE id = '{tx_id}';"
-    ids = dblib.read_query(query)
-    tx_info = {
-        "msg": msg,
-        "success_flag": success_flag,
-        "wallet_origin_id": id,
-        "tx_id": tx_id,
-        "tx_details": params,
-        "fees": fees,
-        "sign": sign_response,
-        "submit": submit_response,
-        "tx_cborhex": cbor_tx_file
-    }
-
-    if ids != []:
-        tx_info["msg"] = "Transaction id already exists in database"
+    # Check if transaction signed is already stored in db
+    db_transaction = db.query(dbmodels.Transactions).filter(dbmodels.Transactions.tx_id == tx_id).first()
+    if db_transaction is None:
+        db_transaction = dbmodels.Transactions(
+            id_wallet = id,
+            address_origin = params["address_origin"],
+            address_destin = str(params["address_destin"]),
+            tx_cborhex = cbor_tx_file,
+            metadata = params["metadata"],
+            fees = fees,
+            network = base.Starter(config_path).CARDANO_NETWORK,
+            processed = success_flag,
+            tx_id = tx_id
+        )
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
     else:
-        id = dblib.insert_transaction(tx_info, config_path=config_path)
-
-    return tx_info
+        raise HTTPException(status_code=404, detail="Transaction id already exists in database")
+    return db_transaction
 
 @router.post("/cardanodatos/transactions/buildtx", status_code=201, 
                 tags=["Transactions"],
                 summary="Simple build of tx to send ADA (not tokens) to multiple addresses",
                 response_description="Build tx"
                 )
-async def build_tx(build_tx: BuildTx) -> dict:
+async def build_tx(build_tx: BuildTx, db: Session = Depends(get_db)) -> dict:
     """
     Build_tx only builds the transaction, not sign or submit. 
     Simple send of ADA (not tokens) to multiple addresses.
@@ -147,11 +153,7 @@ async def build_tx(build_tx: BuildTx) -> dict:
     else:
         msg = "Problems building the transaction"
         cbor_tx_file = {"msg": msg}
-    
-    # Check if transaction is already stored in db
-    tableName = 'transactions'
-    query = f"SELECT * FROM {tableName} WHERE id = '{tx_id}';"
-    ids = dblib.read_query(query)
+
     tx_info = {
         "msg": msg,
         "success_flag": success_flag,

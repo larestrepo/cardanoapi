@@ -44,6 +44,7 @@ class Transactions(Base):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, index=True)
+    tx_id = Column(Text, nullable=False)
     id_wallet = Column(UUID(as_uuid=True), ForeignKey('wallet.id'), nullable=True)
     submission = Column(DateTime, default=datetime.utcnow, nullable=True)
     address_origin = Column(Text, nullable=True)
