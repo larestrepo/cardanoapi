@@ -196,7 +196,7 @@ async def submit_tx(file: UploadFile):
                 summary="Mint tokens under specified policyID",
                 response_description="Mint confirmation"
                 )
-async def mint(mint_params: Mint) -> dict:
+async def mint(mint_params: Mint, db: Session = Depends(get_db)) -> dict:
     """Mint tokens under specified policyID.
     The script must exists in local db. To create a mint script use the mint script endpoint\n
     **script_id**: id of the file stored in local db.\n
@@ -211,11 +211,17 @@ async def mint(mint_params: Mint) -> dict:
     msg = ""
     id = mint_params.wallet_id
     mint = None
-    (address_origin, payment_vkey) = dblib.get_address_origin('wallet', id)
+    db_wallet = db.query(dbmodels.Wallet).filter(dbmodels.Wallet.id == id).first()
+    if db_wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    address_origin = db_wallet.payment_addr
+    payment_skey = db_wallet.payment_skey
+
+    # (address_origin, payment_vkey) = dblib.get_address_origin('wallet', id)
     sign_file_name = 'temp_' + id
     sign_path = node.KEYS_FILE_PATH + '/'
     sign_file_name = 'temp_' + id
-    path_utils.save_file(sign_path + sign_file_name + '/', sign_file_name + '.payment.skey', payment_vkey)
+    path_utils.save_file(sign_path + sign_file_name + '/', sign_file_name + '.payment.skey', payment_skey)
     address_destin = mint_params.address_destin
     address_destin_dict = [item.dict() for item in address_destin]
 
@@ -223,15 +229,13 @@ async def mint(mint_params: Mint) -> dict:
     tokens = [item.dict() for item in mint_params.tokens]
 
     # Check if script exists in db
-    tableName = 'scripts'
-    query = f"SELECT * FROM {tableName} WHERE id = '{script_id}';"
-    script_db = dblib.read_query(query)
+    db_script = db.query(dbmodels.Scripts).filter(dbmodels.Scripts.id == script_id).first()
 
-    if script_db != []:
-        purpose = script_db[0][2]
+    if db_script is not None:
+        purpose = db_script.purpose
         if purpose == 'mint':
-            simple_script = script_db[0][3]
-            policyID = script_db[0][4]
+            simple_script = db_script.content
+            policyID = db_script.policyID
 
             # Extract the time rule from the script if any
             script_field = simple_script.get("scripts", None)
@@ -239,10 +243,10 @@ async def mint(mint_params: Mint) -> dict:
             # Asuming a simple script with just one item inside the script field
             if script_field is not None:
                 for fields in script_field:
+                    print("HOLA", fields)
                     for k, v in fields.items():
-                        print("#####################################",k, v)
+                        print(k, v)
                         if v in ["before", "after"]:
-                            print("#############################################")
                             type_time = v
                             slot = fields["slot"]
                             validity_interval = {"slot": slot, "type": type_time}
@@ -251,7 +255,7 @@ async def mint(mint_params: Mint) -> dict:
                             mint = None
             
                 # Create the script file
-                script_name = script_db[0][1] + '.script'
+                script_name = db_script.name + '.script'
                 script_file_path = node.MINT_FOLDER
                 path_utils.save_metadata(script_file_path, script_name, simple_script)
                 script_file_path = node.MINT_FOLDER + '/' + script_name
@@ -267,6 +271,7 @@ async def mint(mint_params: Mint) -> dict:
                 msg = "Could not find script for minting"
             
         else:
+            # TODO: Make transaction for multisig option
             msg = "Script purpose is not for minting"
     else:
         msg = "Could not find script for minting"
@@ -282,7 +287,6 @@ async def mint(mint_params: Mint) -> dict:
         "witness": mint_params.witness,
     }
     build_response = node.build_tx_components(params)
-    print("hola", build_response)
     tx_id = node.get_txid_body()
 
     if build_response is not None:
@@ -292,32 +296,35 @@ async def mint(mint_params: Mint) -> dict:
         if sign_response is not None:
             tx_id = node.get_txid_signed()[:-1]
             tx_analysis = json.dumps(node.analyze_tx_signed())
-            # submit_response = node.submit_transaction()
+            submit_response = node.submit_transaction()
             msg = "Transaction signed and submit"
+            # Remove temp files
+            path_utils.remove_folder(sign_path + sign_file_name)
+            cbor_tx_path = base.Starter(config_path).TRANSACTION_PATH_FILE + '/tx.signed'
+            with open(cbor_tx_path, 'r') as file:
+                cbor_tx_file = json.load(file)
         else:
-            msg = "Problems signing the transaction"
+            raise HTTPException(status_code=404, detail="Problems signing the transaction")
     else:
-        msg = "Problems building the transaction"
-    # Remove temp files
-    path_utils.remove_folder(sign_path + sign_file_name)
-
+        raise HTTPException(status_code=404, detail="Problems building the transaction")
+    
     # Check if transaction is already stored in db
-    tableName = 'transactions'
-    query = f"SELECT * FROM {tableName} WHERE id = '{tx_id}';"
-    ids = dblib.read_query(query)
-    tx_info = {
-        "msg": msg,
-        "success_flag": success_flag,
-        "wallet_origin_id": id,
-        "tx_id": tx_id,
-        "tx_details": params,
-        "fees": fees,
-        "sign": sign_response,
-        "submit": submit_response
-    }
-    if ids != []:
-        tx_info["msg"] = "Transaction id already exists in database"
+    db_transaction = db.query(dbmodels.Transactions).filter(dbmodels.Transactions.tx_id == tx_id).first()
+    if db_transaction is None:
+        db_transaction = dbmodels.Transactions(
+            id_wallet = id,
+            address_origin = params["address_origin"],
+            address_destin = str(params["address_destin"]),
+            tx_cborhex = cbor_tx_file,
+            metadata_info = params["metadata"],
+            fees = fees,
+            network = base.Starter(config_path).CARDANO_NETWORK,
+            processed = success_flag,
+            tx_id = tx_id
+        )
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
     else:
-        id = dblib.insert_transaction(tx_info, config_path=config_path)
-
-    return tx_info
+        raise HTTPException(status_code=404, detail="Transaction id already exists in database")
+    return db_transaction
