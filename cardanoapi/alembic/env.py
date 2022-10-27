@@ -5,13 +5,20 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from db.dblib import Base, conn_string, engine
+from db.dblib import config
 from db.models import dbmodels
 
-# config_path = './config.ini'
+params = config('./config.ini', section='postgresql')
+
+user = params["user"]
+password = params["password"]
+password = params["password"]
+host = params["host"]
+port = params["port"]
+database = params["database"]
 
 config = context.config
-config.set_main_option('sqlalchemy.url', 'postgresql://cardanodatos:cardanodatos@localhost:5962/cardanodatos')
+config.set_main_option('sqlalchemy.url', f"postgresql://{user}:{password}@{host}:{port}/{database}")
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 

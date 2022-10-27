@@ -1,4 +1,3 @@
-import json
 from configparser import ConfigParser
 from typing import Any
 
@@ -7,7 +6,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 
-config_path = './config.ini'
 def config(config_path: str, section: str) -> dict:
     # create a parser
     parser = ConfigParser()
@@ -27,7 +25,7 @@ def config(config_path: str, section: str) -> dict:
 
 """ Connect to the PostgreSQL database server using SQLAlchemy method """
 # read connection parameters
-params = config(config_path, section='postgresql')
+params = config('./config.ini', section='postgresql')
 
 # connect to the PostgreSQL server
 print('Connecting to the PostgreSQL database...')

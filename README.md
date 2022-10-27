@@ -123,6 +123,11 @@ sudo npm install -g pm2
 
     pm2 start "gunicorn -w 4 -k uvicorn.workers.UvicornWorker server:cardanodatos" --name cardanoapi
 
+Other pm2 commands
+
+    pm2 ls
+    pm2 restart <name of the app>
+
 ### Configure nginx 
 
 In /etc/nginx/conf.d 
