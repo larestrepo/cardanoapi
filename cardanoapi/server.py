@@ -1,10 +1,11 @@
 
-import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from routers import blockchain_api, keys_api, transactions_api, scripts_api, admin_api, security
 from db.models import dbmodels
 from db.dblib import engine
+
+from routers.api_v1.api import api_router
+from core.config import settings
 
 from celery import Celery
 
@@ -23,8 +24,11 @@ dbmodels.Base.metadata.create_all(bind=engine)
 cardanodatos = FastAPI(
         title=title, 
         description=description, 
-        contact=contact, 
+        contact=contact,
+        openapi_url=f"{settings.API_V1_STR}/openapi.json", 
         debug=True)
+
+root_router = APIRouter()
 
 cardanodatos.add_middleware(
     CORSMiddleware,
@@ -51,13 +55,21 @@ def divide(x, y):
 # Start of the endpoints
 ##################################################################
 
-cardanodatos.include_router(security.router)
-cardanodatos.include_router(admin_api.router)
-cardanodatos.include_router(blockchain_api.router)
-cardanodatos.include_router(keys_api.router)
-cardanodatos.include_router(transactions_api.router)
-cardanodatos.include_router(scripts_api.router)
+@root_router.get("/api/v1", status_code=200)
+async def root():
+    return {"message": "CardanoPythonLib Api"}
+
+cardanodatos.include_router(root_router)
+cardanodatos.include_router(api_router, prefix=settings.API_V1_STR)
+
+# cardanodatos.include_router(security.router)
+# cardanodatos.include_router(admin_api.router)
+# cardanodatos.include_router(blockchain_api.router)
+# cardanodatos.include_router(keys_api.router)
+# cardanodatos.include_router(transactions_api.router)
+# cardanodatos.include_router(scripts_api.router)
+
 
 if __name__ == "__main__":
-
-    uvicorn.run(cardanodatos, host="0.0.0.0", port=8001, reload=False)
+    import uvicorn
+    uvicorn.run(cardanodatos, host="0.0.0.0", port=8001, reload=False, log_level="debug")

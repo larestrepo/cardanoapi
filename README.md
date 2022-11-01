@@ -1,6 +1,6 @@
 
 
-#Redis
+### Redis
 
     docker run -p 6379:6379 --name some-redis -d redis
 
@@ -173,4 +173,26 @@ git push -u origin 1.initial-cardanoapi
 
     alembic upgrade head
 
-    
+# Frontend
+
+    npx create-react-app frontend
+    cd frontend
+    npm start
+    npm install bulma
+    npm install http-proxy-middleware --save
+
+Create setupProxy.js file to configure proxy
+
+```javascript
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+module.exports = function(app) {
+  app.use(
+    '/api',
+    createProxyMiddleware({
+      target: 'http://127.0.0.1:8001',
+      changeOrigin: true,
+    })
+  );
+};
+```

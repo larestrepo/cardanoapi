@@ -4,7 +4,7 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from db.dblib import get_db
-from routers import pydantic_schemas
+from routers.api_v1.endpoints import pydantic_schemas
 from db.models import dbmodels
 
 from pydantic import UUID4
@@ -12,7 +12,6 @@ from pydantic import UUID4
 router = APIRouter()
 
 @router.get("/users",
-        tags=["Users"],
         summary="Get all the users stored in local database",
         response_description="List of users",
         response_model=List[pydantic_schemas.User])
@@ -23,7 +22,6 @@ def get_users(skip: int= 0, limit: int = 100, db: Session = Depends(get_db)):
     return db_user
 
 @router.get("/users/{user_id}",
-        tags=["Users"],
         summary="Get user by id",
         response_description="User by id",
         response_model=pydantic_schemas.User)
@@ -34,7 +32,6 @@ def get_user_by_id(user_id: UUID4, db: Session = Depends(get_db)):
     return db_user
 
 @router.get("/users/wallet/{id_wallet}",
-        tags=["Users"],
         summary="Get user by wallet id",
         response_description="User by wallet id",
         response_model=pydantic_schemas.User)
@@ -45,7 +42,6 @@ def get_user_by_wallet_id(id_wallet: UUID4, db: Session = Depends(get_db)):
     return db_user
 
 @router.post("/users/", 
-                tags=["Users"],
                 summary="Create User",
                 response_description="User created",
                 response_model=pydantic_schemas.User)

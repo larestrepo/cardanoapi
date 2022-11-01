@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-
+config_path = './cardanoapi/config.ini' # Optional argument
 def config(config_path: str, section: str) -> dict:
     # create a parser
     parser = ConfigParser()
@@ -30,7 +30,7 @@ params = config('./config.ini', section='postgresql')
 # connect to the PostgreSQL server
 print('Connecting to the PostgreSQL database...')
 conn_string = f"postgresql://{params['user']}:{params['password']}@{params['host']}:{params['port']}/{params['database']}"
-engine = create_engine(conn_string, connect_args={}, future=True, echo=True)
+engine = create_engine(conn_string, connect_args={}, future=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
 

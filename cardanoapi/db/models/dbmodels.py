@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSON
 from ..dblib import Base
 from .mixins import Timestamp
 import uuid
-from routers.pydantic_schemas import ScriptPurpose
+from routers.api_v1.endpoints.pydantic_schemas import ScriptPurpose
 
 
 class Wallet(Timestamp, Base):

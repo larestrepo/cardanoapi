@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from cardanopythonlib import base
-from routers.pydantic_schemas import KeyCreate, KeyRecover
+from routers.api_v1.endpoints.pydantic_schemas import KeyCreate, KeyRecover
 from db.dblib import get_db
 from db.models import dbmodels
 import uuid
@@ -13,8 +13,7 @@ config_path = './config.ini' # Optional argument
 starter = base.Starter(config_path)
 keys = base.Keys(config_path) # Or with the default ini: node = base.Node()
 
-@router.post("/cardanodatos/keys/generate", status_code=201, 
-                tags=["Keys"],
+@router.post("/generate", status_code=201, 
                 summary="Create wallet using mnemonics as root key",
                 response_description="Keys generated"
                 )
@@ -47,8 +46,7 @@ async def create_keys(key: KeyCreate, db: Session = Depends(get_db)) -> dict:
         db.refresh(db_key)
     return db_key
 
-@router.post("/cardanodatos/keys/mnemonics", status_code=201, 
-                tags=["Keys"],
+@router.post("/mnemonics", status_code=201, 
                 summary="Generate mnemonics only",
                 response_description="mnemonics generated"
                 )
@@ -59,8 +57,7 @@ async def generate_mnemonics(size: int = 24) -> list:
     """
     return keys.generate_mnemonic(size)
 
-@router.post("/cardanodatos/keys/recover", status_code=201, 
-                tags=["Keys"],
+@router.post("/recover", status_code=201, 
                 summary="Recover wallet by using mnemonics",
                 response_description="Recover keys info"
                 )

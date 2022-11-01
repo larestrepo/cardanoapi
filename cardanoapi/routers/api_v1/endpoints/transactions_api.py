@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from db.dblib import get_db
 
 from cardanopythonlib import base, path_utils
-from routers.pydantic_schemas import SimpleSend, BuildTx, Mint
+from routers.api_v1.endpoints.pydantic_schemas import SimpleSend, BuildTx, Mint
 from db.models import dbmodels
 
 router = APIRouter()
@@ -16,8 +16,7 @@ node = base.Node(config_path) # Or with the default ini: node = base.Node()
 
 
 
-@router.post("/cardanodatos/transactions/simplesend", status_code=201, 
-                tags=["Transactions"],
+@router.post("/simplesend", status_code=201, 
                 summary="Simple send of ADA (not tokens) to multiple addresses",
                 response_description="Transaction submit"
                 )
@@ -106,8 +105,7 @@ async def simple_send(send_params: SimpleSend, db: Session = Depends(get_db)) ->
         raise HTTPException(status_code=404, detail="Transaction id already exists in database")
     return db_transaction
 
-@router.post("/cardanodatos/transactions/buildtx", status_code=201, 
-                tags=["Transactions"],
+@router.post("/buildtx", status_code=201, 
                 summary="Simple build of tx to send ADA (not tokens) to multiple addresses",
                 response_description="Build tx"
                 )
@@ -164,8 +162,7 @@ async def build_tx(build_tx: BuildTx, db: Session = Depends(get_db)) -> dict:
     }
     return tx_info
 
-@router.post("/cardanodatos/transactions/submit", status_code=201, 
-                tags=["Transactions"],
+@router.post("/submit", status_code=201, 
                 summary="Submit the transaction",
                 response_description="Tx submit"
                 )
@@ -191,8 +188,7 @@ async def submit_tx(file: UploadFile):
     }
     return tx_info
 
-@router.post("/cardanodatos/transactions/mint", status_code=201, 
-                tags=["Transactions"],
+@router.post("/mint", status_code=201, 
                 summary="Mint tokens under specified policyID",
                 response_description="Mint confirmation"
                 )

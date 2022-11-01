@@ -3,7 +3,7 @@ from fastapi import APIRouter, UploadFile, Depends
 from sqlalchemy.orm import Session
 
 from cardanopythonlib import base, path_utils
-from routers.pydantic_schemas import ScriptPurpose, Script
+from routers.api_v1.endpoints.pydantic_schemas import ScriptPurpose, Script
 from db.dblib import get_db
 from db.models import dbmodels
 
@@ -14,8 +14,7 @@ starter = base.Starter(config_path)
 node = base.Node(config_path) # Or with the default ini: node = base.Node()
 
 
-@router.post("/cardanodatos/uploadScript/{script_purpose}", status_code=201, 
-                tags=["Scripts"],
+@router.post("/uploadScript/{script_purpose}", status_code=201, 
                 summary="Upload an existing script file",
                 response_description="Script uploaded"
                 )
@@ -46,8 +45,7 @@ async def upload_script(script_name: str,
 
     return db_script
 
-@router.post("/cardanodatos/simplescript/{script_purpose}", status_code=201, 
-                tags=["Scripts"],
+@router.post("/simplescript/{script_purpose}", status_code=201, 
                 summary="",
                 response_description="Script creation"
                 )

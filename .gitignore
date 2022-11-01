@@ -208,3 +208,4 @@ cython_debug/
 /cardanoapi/temp_main.py
 cardanoapi/db/dblib_old.py
 cardanoapi/alembic/versions
+frontend
