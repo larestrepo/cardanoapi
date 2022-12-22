@@ -10,6 +10,7 @@ import uuid
 router = APIRouter()
 
 config_path = './config.ini' # Optional argument
+# config_path = './cardanoapi/config.ini' # Optional argument
 starter = base.Starter(config_path)
 keys = base.Keys(config_path) # Or with the default ini: node = base.Node()
 
@@ -30,21 +31,30 @@ async def create_keys(key: KeyCreate, db: Session = Depends(get_db)) -> dict:
 
     key_created = keys.deriveAllKeys(key.name, size = key.size, save_flag = key.save_flag)
     db_key = dbmodels.Wallet(
-        name=key.name,
-        base_addr=key_created.get("base_addr"),
-        payment_addr=key_created.get("payment_addr"),
-        payment_skey=key_created.get("payment_skey"),
-        payment_vkey=key_created.get("payment_vkey"),
-        stake_addr=key_created.get("stake_addr"),
-        stake_skey=key_created.get("stake_skey"),
-        stake_vkey=key_created.get("stake_vkey"),
-        hash_verification_key=key_created.get("hash_verification_key"),
+        name = key.name,
+        base_addr = key_created.get("base_addr"),
+        payment_addr = key_created.get("payment_addr"),
+        payment_skey = key_created.get("payment_skey"),
+        payment_vkey = key_created.get("payment_vkey"),
+        stake_addr = key_created.get("stake_addr"),
+        stake_skey = key_created.get("stake_skey"),
+        stake_vkey = key_created.get("stake_vkey"),
+        hash_verification_key = key_created.get("hash_verification_key"),
     )
     if key.save_flag:
         db.add(db_key)
         db.commit()
         db.refresh(db_key)
-    return db_key
+    
+    key_response = {}
+    key_response.update(db_key.__dict__)
+    key_response["mnemonic"] = key_created.get("mnemonic")
+    key_response["root_key"] = key_created.get("root_key")
+    key_response["private_stake_key"] = key_created.get("private_stake_key")
+    key_response["private_payment_key"] = key_created.get("private_payment_key")
+    key_response["payment_account_key"] = key_created.get("payment_account_key")
+    key_response["stake_account_key"] = key_created.get("stake_account_key")
+    return key_response
 
 @router.post("/mnemonics", status_code=201, 
                 summary="Generate mnemonics only",

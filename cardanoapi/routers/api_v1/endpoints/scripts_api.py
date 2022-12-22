@@ -10,6 +10,7 @@ from db.models import dbmodels
 router = APIRouter()
 
 config_path = './config.ini' # Optional argument
+# config_path = './cardanoapi/config.ini' # Optional argument
 starter = base.Starter(config_path)
 node = base.Node(config_path) # Or with the default ini: node = base.Node()
 
@@ -61,13 +62,18 @@ async def simpleScript(simpleScript_params: Script,
     **slot**: slot for the validity range.
     """
     script_name = simpleScript_params.name
+    type = simpleScript_params.type
+    required = simpleScript_params.required
+    hashes = simpleScript_params.hashes
+    type_time = simpleScript_params.type_time
+    slot = simpleScript_params.slot
     parameters = {
         "name": script_name,
-        "type": simpleScript_params.type,
-        "required": simpleScript_params.required,
-        "hashes": simpleScript_params.hashes,
-        "type_time": simpleScript_params.type_time,
-        "slot": simpleScript_params.slot,
+        "type": type,
+        "required": required,
+        "hashes": hashes,
+        "type_time": type_time,
+        "slot": slot,
         "purpose": script_purpose
     }
     simple_script, policyID = node.create_simple_script(parameters=parameters)
@@ -79,12 +85,18 @@ async def simpleScript(simpleScript_params: Script,
             name = script_name,
             purpose = script_purpose,
             content = simple_script,
-            policyID = policyID
+            policyID = policyID,
+            type = type,
+            required = required,
+            hashes = hashes,
+            type_time = type_time,
+            slot = slot
         )
         db.add(db_script)
         db.commit()
         db.refresh(db_script)
     
+    script_file_path = ''
     if script_purpose == 'mint':
         script_file_path = node.MINT_FOLDER
     elif script_purpose == 'multisig':
@@ -92,6 +104,6 @@ async def simpleScript(simpleScript_params: Script,
 
     script_file_name = '/' + script_name + '.script'
     policy_file_name = '/' + script_name + '.policyid'
-    path_utils.remove_file(script_file_path, script_file_name) # type:ignore
-    path_utils.remove_file(script_file_path, policy_file_name) # type:ignore
+    path_utils.remove_file(script_file_path, script_file_name)
+    path_utils.remove_file(script_file_path, policy_file_name)
     return db_script

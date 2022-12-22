@@ -1,4 +1,3 @@
-from codecs import backslashreplace_errors
 from datetime import datetime
 
 from sqlalchemy import BigInteger, Boolean, Column, Enum
@@ -62,6 +61,11 @@ class Scripts(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(Text, nullable=True)
+    type = Column(Text, nullable=True)
+    required = Column(Integer, nullable=True)
+    hashes = Column(Text, nullable=True)
+    type_time = Column(Text, nullable=True)
+    slot = Column(Integer, nullable=True)
     purpose = Column(Enum(ScriptPurpose), nullable=True)
     content = Column(JSON, nullable=True)
     policyID = Column(Text, nullable=True)

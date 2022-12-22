@@ -6,6 +6,7 @@ from routers.api_v1.endpoints.pydantic_schemas import NodeCommandName
 router = APIRouter()
 
 config_path = './config.ini' # Optional argument
+# config_path = './cardanoapi/config.ini' # Optional argument
 starter = base.Starter(config_path)
 node = base.Node(config_path) # Or with the default ini: node = base.Node()
 

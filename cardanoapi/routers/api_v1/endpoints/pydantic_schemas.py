@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import List, Union, Optional
 from datetime import datetime
-from pydantic import UUID4
+from pydantic import UUID4, ValidationError
+import uuid
 
 from pydantic import BaseModel, validator
 
@@ -73,19 +74,42 @@ class SimpleSend(BaseModel):
     metadata: Union [dict, None] = None
     witness: int = 1
 
+class Tokens(BaseModel):
+    name: str
+    amount: int
+    
 class BuildTx(BaseModel):
     address_origin: str
     address_destin: list[AddressDestin]
     metadata: Union [dict, None] = None
+    script_id: str = ""
+    mint: Union[list[Tokens], None] = None
     witness: int = 1
 
-class Tokens(BaseModel):
-    name: str
-    amount: int
+    @validator("script_id", always=True)
+    def chekc_script_id(cls, value):
+        try:
+            if value != "":
+                uuid.UUID(value)
+        except ValidationError as e:
+            print(e)
+        return value
+
+class SimpleSign(BaseModel):
+    wallets_ids: list[str]
+
+class SignCommandName(str, Enum):
+    cborhex = "cborhex"
+    txfile = "txfile"
 
 class Mint(SimpleSend):
     script_id: str
     tokens: list[Tokens]
+
+    # @validator("script_id", always=True)
+    # def chekc_script_id(cls, value):
+    #     assert isinstance(value, UUID4), "Script_id field must be a valid UUID4"
+    #     return value
 
 ############################
 # Script section definition

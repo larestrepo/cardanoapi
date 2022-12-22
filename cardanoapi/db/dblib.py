@@ -5,7 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-config_path = './cardanoapi/config.ini' # Optional argument
+config_path = './config.ini' # Optional argument
+# config_path = './cardanoapi/config.ini' # Optional argument
 def config(config_path: str, section: str) -> dict:
     # create a parser
     parser = ConfigParser()
@@ -25,7 +26,7 @@ def config(config_path: str, section: str) -> dict:
 
 """ Connect to the PostgreSQL database server using SQLAlchemy method """
 # read connection parameters
-params = config('./config.ini', section='postgresql')
+params = config(config_path, section='postgresql')
 
 # connect to the PostgreSQL server
 print('Connecting to the PostgreSQL database...')

@@ -209,3 +209,4 @@ cython_debug/
 cardanoapi/db/dblib_old.py
 cardanoapi/alembic/versions
 frontend
+postgresql.session.sql

@@ -62,13 +62,6 @@ async def root():
 cardanodatos.include_router(root_router)
 cardanodatos.include_router(api_router, prefix=settings.API_V1_STR)
 
-# cardanodatos.include_router(security.router)
-# cardanodatos.include_router(admin_api.router)
-# cardanodatos.include_router(blockchain_api.router)
-# cardanodatos.include_router(keys_api.router)
-# cardanodatos.include_router(transactions_api.router)
-# cardanodatos.include_router(scripts_api.router)
-
 
 if __name__ == "__main__":
     import uvicorn
